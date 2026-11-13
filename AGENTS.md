@@ -26,5 +26,5 @@ Follow the parent workspace AMD environment rules and `vibe/PLAN.md`. Read
   Publish only deliberately prepared source/configuration and public docs.
   Do not copy the sibling's protected research/archive tree into public commits.
 - Sync reviewed project source/docs/configuration to the user-designated
-  `zihaomu/minimax-h3-image-ROCm` repository with normal commits and pushes.
+  `AMD-AIM/minimax-h3-image-ROCm` repository's `int8` branch with normal commits and pushes.
   Report support and performance only within completed validation scope.

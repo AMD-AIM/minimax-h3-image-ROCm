@@ -1,19 +1,44 @@
-# MiniMax H3-Image ROCm
+# MiniMax H3-Image INT8 on AMD ROCm
 
-面向 AMD Radeon AI PRO R9700 的 MiniMax-H3-Image 推理项目。以 ComfyUI 和 INT8 ConvRot 为基础，逐步实现自己的计算后端和 Image 多卡执行，比较四卡协同与两组双卡的延迟和吞吐。
+This `int8` branch preserves the **single-GPU INT8 ConvRot baseline** for MiniMax-H3-Image on AMD Radeon AI PRO R9700. It is based on the frozen `v0.1.0-image-int8-first-image` release; inference code, workflow, model revisions, and runtime locks are unchanged from that snapshot.
 
-**当前状态：独立 ROCm 10.1 环境已通过检查，单张 R9700 已完成首个 2048×2048、6 步文生图请求。完整基线、自有后端及多卡实现仍待验证。**
+The [`main` branch](https://github.com/AMD-AIM/minimax-h3-image-ROCm/tree/main) contains the current original-precision BF16/FP32 four-GPU pipeline. The INT8 measurements below describe this branch's separate workload.
 
-- [冻结版本 v0.1.0-image-int8-first-image](docs/releases/v0.1.0-image-int8-first-image.md)：单卡 INT8 首图请求 **17.642 秒**；包含诊断开销，属于一次功能观测。
-- [环境准备与复现命令](docs/QUICKSTART.md)
-- [首图结果与测量范围](docs/FIRST_IMAGE.md)
-- [实际环境锁](configs/runtime-lock.json) / [应用依赖锁](configs/requirements-image.lock)
-- [模型来源与固定版本](models/README.md)
+[Setup guide](docs/QUICKSTART.md) · [Model sources](models/README.md) · [First-image report](docs/FIRST_IMAGE.md) · [Frozen release](docs/releases/v0.1.0-image-int8-first-image.md)
 
-计划、阶段状态和来源审计保存在本地 `vibe/`、`research/`，不上传 GitHub。
+## Validated baseline
 
-环境使用项目独立的 ComfyUI checkout 与依赖，基础目标为 ROCm 10.1。参考 [MiniMax H3 视频项目](https://github.com/zihaomu/minimax-h3-ROCm) 的量化分片、R9700 Attention 和双卡执行；Image 前向与四卡扩展按本项目计划重新验证。
+| Item | Recorded result |
+|---|---|
+| Hardware | One AMD Radeon AI PRO R9700, RDNA4 / `gfx1201` |
+| Image | 2048 × 2048, batch 1, seed 42 |
+| Sampling | Six steps, CFG=1, Euler/simple, denoise=1 |
+| Weights | INT8 ConvRot DiT and encoder; FP16 Image VAE |
+| Engine | Pinned ComfyUI v0.45.0 `PromptExecutor` |
+| Runtime | ROCm 10.1; Torch `2.14.0+rocm10.1.0`; Triton `3.8.0+git669b31ac.rocm10.1.0` |
+| Full workflow request | **17.642 s** |
+| Sampled whole-card VRAM peak | **31.618 GiB** |
+| Peak process RSS | **2.857 GiB** |
 
-当前入口通过原生 ComfyUI `PromptExecutor` 在本地执行 API 工作流。首图使用原生计算路径，尚未接入旧视频项目的自定义 Attention 或双卡代码。
+This is one instrumented first-image observation, including loading, synchronization, tensor capture, and profiling overhead. DynamicVRAM and asynchronous weight offload are enabled. It does not establish warm serving throughput, lossless quantization, editing, 4K, or multi-GPU support for this INT8 path. See the [full measurement definitions](docs/FIRST_IMAGE.md).
 
-源码、配置和专门整理的公开文档同步至本仓库。`vibe/`、`research/`、模型权重、运行环境、缓存和原始实验产物存放在本地。`models/` 仅提交记录来源链接、版本及校验值的 `README.md`，不提交权重文件。官方模型与第三方源码遵循各自许可；实际代码移植时记录来源并保留相应许可证及 NOTICE。
+## Reproduce the INT8 request
+
+Follow the [setup guide](docs/QUICKSTART.md) to prepare the workspace launcher, pinned application environment, and three model files. Set `SETUP_GPU_ID` to an available physical GPU ID on your machine, then run from the project root:
+
+```bash
+python3 tools/run_rocm10.py \
+  --gpu "${SETUP_GPU_ID:?Set SETUP_GPU_ID to an available physical GPU ID}" \
+  --run-dir runs/image-int8-2048-seed42 \
+  -- .runtime/venv/bin/python tools/run_image.py
+```
+
+Use a new run directory each time. The supplied launcher depends on the shared workspace infrastructure described in the setup guide; this branch does not provision that infrastructure.
+
+## Source and repository boundaries
+
+The original snapshot is preserved at [tag `v0.1.0-image-int8-first-image`](https://github.com/AMD-AIM/minimax-h3-image-ROCm/tree/v0.1.0-image-int8-first-image). The [freeze manifest](configs/releases/v0.1.0-image-int8-first-image.json) retains its original identities and report hashes. The reports on this branch are English translations; verify the historical report hashes against files at the frozen tag.
+
+Only source, configuration, and prepared documentation are public. Model weights, environments, caches, raw images/tensors/logs, `runs/`, `vibe/`, and `research/` stay local. Under `models/`, only `README.md` is tracked. Models and third-party code retain their respective licenses.
+
+The previous personal repository, [zihaomu/minimax-h3-image-ROCm](https://github.com/zihaomu/minimax-h3-image-ROCm), is retained as an archive. Active development is hosted by AMD-AIM.
