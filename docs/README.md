@@ -9,6 +9,8 @@ Start with the [project overview and performance table](../README.md), then foll
 | [Environment setup and image generation](QUICKSTART.md) | Pinned dependencies, model download, 1K/2K/4K generation, resource reports, and A/A comparison |
 | [R9700 resolution benchmark](benchmarks/R9700_NATIVE_RESOLUTIONS.md) | Same-workload latency, per-card VRAM, CPU RAM, sample counts, and measurement definitions |
 | [Benchmark JSON](benchmarks/r9700-native-resolutions.json) | Unrounded measurements, source identities, and output/evidence hashes |
+| [W7900 resolution benchmark](benchmarks/W7900_NATIVE_RESOLUTIONS.md) | Two-GPU `gfx1100` latency, per-card VRAM, CPU RAM, correctness gates, and the 4K matrix |
+| [W7900 benchmark JSON](benchmarks/w7900-native-resolutions.json) | Unrounded W7900 measurements and identities |
 | [Model sources](../models/README.md) | Original BF16/FP32 components, fixed revisions, sizes, and checksums |
 | [Source and license identities](NATIVE_SOURCES.md) | Pinned ComfyUI modules, Diffusers reference files, and model license identities |
 | [Tool reference](../tools/README.md) | Which entry point to use, where it runs, and what it produces |

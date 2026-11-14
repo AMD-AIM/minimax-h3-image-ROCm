@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "status": "environment_qualified",
+  "status": "environment_and_two_gpu_image_qualified",
   "foundation": {
     "profile": "rocm10-foundation-w7900-v1",
     "image_id": "sha256:31cc953da2ee8345774f92c8f288dded6a19cbcd59c1ce96051970f48d627d18",
@@ -68,10 +68,15 @@
   "execution": {
     "gpu_architecture": "gfx1100",
     "native_mode": "two-static",
-    "devices_per_request": 2
+    "devices_per_request": 2,
+    "benchmark_physical_gpus": [
+      4,
+      5
+    ]
   },
   "qualification": {
     "environment": "passed: venv pip check clean, gfx1100 extensions rebuilt, forced Flash SDPA at [1,56,16384,128] BF16 passed",
-    "two_gpu_image": "pending"
+    "two_gpu_image": "passed: 1K/2K/4K two-static, A/A exact, 2K two-static vs single-offload bit-identical, 4K three-prompt x two-seed matrix complete",
+    "benchmark": "docs/benchmarks/W7900_NATIVE_RESOLUTIONS.md"
   }
 }
