@@ -18,6 +18,7 @@ import requests
 
 ROOT = Path(__file__).resolve().parents[1]
 MODEL_ROOT = ROOT / "models"
+HF_ENDPOINT = os.environ.get("HF_ENDPOINT", "https://huggingface.co").rstrip("/")
 STATE_ROOT = MODEL_ROOT / ".download/native"
 IMAGE_REVISION = "5f90473023975e6271b0ed1dd84c4e88e4bbc6d3"
 TEXT_REVISION = "0919fb684102ef115126612f3fbb84d1027e7317"
@@ -71,7 +72,7 @@ def atomic_json(path: Path, value: object) -> None:
 
 
 def source_inventory(session: requests.Session, source: dict) -> list[dict]:
-    url = f"https://huggingface.co/api/models/{source['repository']}/revision/{source['revision']}?blobs=true"
+    url = f"{HF_ENDPOINT}/api/models/{source['repository']}/revision/{source['revision']}?blobs=true"
     response = session.get(url, timeout=(20, 120))
     response.raise_for_status()
     payload = response.json()
@@ -94,7 +95,7 @@ def source_inventory(session: requests.Session, source: dict) -> list[dict]:
                 "size_bytes": int(row["size"]),
                 "sha256": (row.get("lfs") or {}).get("sha256"),
                 "url": (
-                    f"https://huggingface.co/{source['repository']}/resolve/"
+                    f"{HF_ENDPOINT}/{source['repository']}/resolve/"
                     f"{source['revision']}/{remote_path}"
                 ),
             }
@@ -189,7 +190,9 @@ class Downloader:
                 ) as response:
                     response.raise_for_status()
                     expected = f"bytes {start}-{end}/{spec['size_bytes']}"
-                    if response.status_code != 206 or response.headers.get("Content-Range") != expected:
+                    # Some mirrors ignore Range for small non-LFS files and send the whole body.
+                    whole_file = start == 0 and end + 1 == spec["size_bytes"] and response.status_code == 200
+                    if not whole_file and (response.status_code != 206 or response.headers.get("Content-Range") != expected):
                         raise RuntimeError(
                             f"Unexpected range response {response.status_code} {response.headers.get('Content-Range')}"
                         )
