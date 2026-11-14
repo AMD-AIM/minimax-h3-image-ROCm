@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from minimax_h3_image_rocm.bootstrap import ENGINE, configure_comfy, require_flash_sdpa
+from minimax_h3_image_rocm.hardware import load_profile, load_runtime_lock
 
 
 def sha256(path: Path) -> str:
@@ -38,7 +39,8 @@ def source_identity(path: Path) -> dict:
 
 
 def validate_environment(torch) -> dict:
-    lock = json.loads((ROOT / "configs/runtime-lock.json").read_text())
+    profile = load_profile(ROOT)
+    lock = load_runtime_lock(ROOT, profile)
     expected = lock["foundation"]
     actual = {
         "image_id": os.environ.get("DEEPINFER_IMAGE_ID"),
@@ -48,6 +50,8 @@ def validate_environment(torch) -> dict:
         "hip_build": torch.version.hip,
         "device_count": torch.cuda.device_count(),
         "physical_gpus": os.environ.get("H3I_PHYSICAL_GPUS", "").split(","),
+        "hardware_profile": profile["name"],
+        "runtime_lock": profile["runtime_lock"],
     }
     checks = {
         "image_id": expected["image_id"],
@@ -73,14 +77,15 @@ def validate_environment(torch) -> dict:
         }
         for index in range(torch.cuda.device_count())
     ]
-    if any(row["architecture"].split(":", 1)[0] != "gfx1201" for row in actual["devices"]):
-        raise RuntimeError(f"A visible device is not gfx1201: {actual['devices']}")
+    architecture = profile["gpu_architecture"]
+    if any(row["architecture"].split(":", 1)[0] != architecture for row in actual["devices"]):
+        raise RuntimeError(f"A visible device is not {architecture}: {actual['devices']}")
     return actual
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--mode", choices=("single-offload", "four-static"), required=True)
+    parser.add_argument("--mode", choices=("single-offload", "two-static", "four-static"), required=True)
     parser.add_argument("--config", type=Path, default=ROOT / "configs/native_t2i.json")
     parser.add_argument("--width", type=int, choices=(1024, 2048, 4096))
     parser.add_argument("--height", type=int, choices=(1024, 2048, 4096))

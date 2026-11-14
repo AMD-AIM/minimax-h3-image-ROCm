@@ -16,6 +16,9 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 ENGINE = ROOT / ".runtime/engines/ComfyUI-image"
+sys.path.insert(0, str(ROOT / "src"))
+
+from minimax_h3_image_rocm.hardware import load_profile, load_runtime_lock  # noqa: E402
 
 
 def atomic_json(path: Path, value: object) -> None:
@@ -76,7 +79,8 @@ def main() -> None:
     from comfy.ldm.minimax.model import MiniMaxH3ImageModel
     from comfy.text_encoders.llama import Qwen3VL_32BConfig
 
-    lock = json.loads((ROOT / "configs/runtime-lock.json").read_text())
+    profile = load_profile(ROOT)
+    lock = load_runtime_lock(ROOT, profile)
     foundation = lock["foundation"]
     if torch.__version__ != foundation["torch"]:
         raise RuntimeError(f"Torch identity mismatch: {torch.__version__}")
@@ -84,15 +88,15 @@ def main() -> None:
         raise RuntimeError("Triton identity mismatch")
     if platform.python_version() != foundation["python"]:
         raise RuntimeError("Python identity mismatch")
-    if torch.cuda.device_count() not in (1, 4):
-        raise RuntimeError(f"Expected one or four visible devices, got {torch.cuda.device_count()}")
+    if torch.cuda.device_count() not in (1, 2, 4):
+        raise RuntimeError(f"Expected one, two or four visible devices, got {torch.cuda.device_count()}")
 
     devices = []
     for index in range(torch.cuda.device_count()):
         prop = torch.cuda.get_device_properties(index)
         architecture = prop.gcnArchName.split(":")[0]
-        if architecture != "gfx1201":
-            raise RuntimeError(f"Logical GPU{index} is {architecture}, expected gfx1201")
+        if architecture != profile["gpu_architecture"]:
+            raise RuntimeError(f"Logical GPU{index} is {architecture}, expected {profile['gpu_architecture']}")
         devices.append(
             {
                 "logical_id": index,
