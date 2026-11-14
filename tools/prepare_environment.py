@@ -12,6 +12,9 @@ import sysconfig
 ROOT = Path(__file__).resolve().parents[1]
 ENGINE = ROOT / ".runtime/engines/ComfyUI-image"
 VENV = ROOT / ".runtime/venv"
+sys.path.insert(0, str(ROOT / "src"))
+
+from minimax_h3_image_rocm.hardware import load_profile, load_runtime_lock  # noqa: E402
 
 
 def main():
@@ -19,11 +22,12 @@ def main():
     parser.add_argument("--install", action="store_true")
     args = parser.parse_args()
     run = Path(os.environ["H3I_RUN_DIR"])
-    target = json.loads((ROOT / "configs/runtime-target.json").read_text())
-    if os.environ.get("DEEPINFER_IMAGE_ID") != target["foundation"]["image_id"]:
+    profile = load_profile(ROOT)
+    lock = load_runtime_lock(ROOT, profile)
+    if os.environ.get("DEEPINFER_IMAGE_ID") != lock["foundation"]["image_id"]:
         raise RuntimeError("Use tools/run_rocm10.py with the locked foundation")
     head = subprocess.check_output(["git", "-C", str(ENGINE), "rev-parse", "HEAD"], text=True).strip()
-    if head != target["application"]["comfyui_candidate_commit"]:
+    if head != lock["application"]["comfyui_commit"]:
         raise RuntimeError("Unexpected ComfyUI checkout")
     if not (VENV / "bin/python").exists():
         subprocess.run([sys.executable, "-m", "venv", str(VENV)], check=True)

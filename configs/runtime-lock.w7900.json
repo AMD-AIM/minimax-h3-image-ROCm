@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "status": "environment_qualified",
+  "foundation": {
+    "profile": "rocm10-foundation-w7900-v1",
+    "image_id": "sha256:31cc953da2ee8345774f92c8f288dded6a19cbcd59c1ce96051970f48d627d18",
+    "image_reference": "freetoken:rocm10.1.0-transformers518-final-gh-proxy-20261026",
+    "rocm_release": "10.1.0",
+    "python": "3.13.13",
+    "torch": "2.14.0+rocm10.1.0",
+    "triton": "3.8.0+git669b31ac.rocm10.1.0",
+    "torchvision": "0.29.0a0+rocm10.1.0",
+    "hip_build": "7.16.26385",
+    "gpu_architecture": "gfx1100"
+  },
+  "application": {
+    "comfyui_repository": "https://github.com/Comfy-Org/ComfyUI",
+    "comfyui_commit": "989d93d0d968e704c589ce0146bb18c77f6b50cc",
+    "native_build_sources": {
+      "comfy-kitchen": "cbc44a5b7cc3b8f910ef76ae5251c94971eb05d1",
+      "comfy-aimdo": "68088de9dce9f5e32231fccf230938769c5562da"
+    },
+    "native_extensions": [
+      {
+        "path": ".runtime/venv/lib/python3.13/site-packages/comfy_kitchen/backends/hip/_C.abi3.so",
+        "sha256": "d88051970c553da2ddf711a9610f1372420ffbfd99f8536c7e1d23ef231204c3"
+      },
+      {
+        "path": ".runtime/venv/lib/python3.13/site-packages/comfy_aimdo/aimdo_rocm.so",
+        "sha256": "b5e3854261e87759a79dc55ffb8233980c354ebb17a8048966d3e010c631c82d"
+      }
+    ],
+    "overlay_requirements": "configs/requirements-image.lock",
+    "versions": {
+      "torch": "2.14.0+rocm10.1.0",
+      "triton": "3.8.0+git669b31ac.rocm10.1.0",
+      "torchvision": "0.29.0a0+rocm10.1.0",
+      "comfy-kitchen": "0.2.41",
+      "comfy-aimdo": "0.6.0",
+      "comfyui-workflow-templates": "0.11.105",
+      "comfyui-workflow-templates-json": "0.1.131",
+      "transformers": "5.18.0",
+      "tokenizers": "0.23.3",
+      "safetensors": "0.8.0"
+    },
+    "wheels": [
+      {
+        "path": ".runtime/sources/comfy-kitchen/dist/comfy_kitchen-0.2.41-cp312-abi3-linux_x86_64.whl",
+        "sha256": "2462336a0799df54c79ce33fe731bb531851352df677011e79d1e79d59163bf1"
+      },
+      {
+        "path": ".runtime/sources/comfy-aimdo/dist/comfy_aimdo-0.6.0-cp39-abi3-linux_x86_64.whl",
+        "sha256": "0e79611f4bf2dda1f511e44d7c73194c9d20fdfd495130da8dd7322270a618a4"
+      }
+    ],
+    "build_dependencies": {
+      "nanobind": "3.1.0",
+      "cmake": "4.4.4",
+      "ninja": "1.13.2",
+      "setuptools-scm": "10.3.4",
+      "setuptools": "81.0.0",
+      "wheel": "0.48.0"
+    },
+    "known_differences_from_r9700_lock": [
+      "transformers 5.18.0 comes from the W7900 foundation (R9700 foundation: 5.16.1); it is used only for the Qwen2 tokenizer"
+    ]
+  },
+  "execution": {
+    "gpu_architecture": "gfx1100",
+    "native_mode": "two-static",
+    "devices_per_request": 2
+  },
+  "qualification": {
+    "environment": "passed: venv pip check clean, gfx1100 extensions rebuilt, forced Flash SDPA at [1,56,16384,128] BF16 passed",
+    "two_gpu_image": "pending"
+  }
+}

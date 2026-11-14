@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "name": "w7900",
+  "description": "AMD Radeon PRO W7900 / W7900D, RDNA3",
+  "gpu_architecture": "gfx1100",
+  "kfd_gfx_target_version": "110000",
+  "allowed_physical_gpu_ids": [0, 1, 2, 3, 4, 5, 6, 7],
+  "runtime_lock": "configs/runtime-lock.w7900.json"
+}
