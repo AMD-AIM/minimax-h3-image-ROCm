@@ -16,6 +16,7 @@ import statistics
 
 ROOT = Path(__file__).resolve().parents[1]
 RESOLUTIONS = (1024, 2048, 4096)
+STATIC_DEVICE_COUNTS = {"two_static": 2, "four_static": 4}
 
 
 def read(path):
@@ -60,7 +61,10 @@ def main():
         require(execution["returncode"] == 0, f"Nonzero exit: {run.name}")
         require(size in RESOLUTIONS and request["height"] == size, f"Invalid size: {run.name}")
         require(request["steps"] == 6 and request["cfg"] == 1 and not request["guidance_branch"], run.name)
-        require(request["mode"] == "four_static" and len(request["denoise"]) == 6, run.name)
+        require(request["mode"] in STATIC_DEVICE_COUNTS and len(request["denoise"]) == 6, run.name)
+        device_count = STATIC_DEVICE_COUNTS[request["mode"]]
+        # Runs recorded before hardware profiles existed are R9700 runs that excluded GPU3.
+        profile = hardware.get("hardware_profile", {"name": "r9700", "allowed_physical_gpu_ids": [0, 1, 2, 4, 5, 6, 7]})
         require(request["vae"]["output_dtype"] == "torch.float32", run.name)
         require(request["text_encoder_stage"]["process_isolation"] is True, run.name)
         require(metadata["numeric_policy"]["quantization"] == "disabled", run.name)
@@ -70,9 +74,9 @@ def main():
         expected_flash = 0 if size == 1024 else 300
         require(request["attention_policy"]["strict_flash_calls"] == expected_flash, run.name)
         mapping = [row["physical_id"] for row in summary["mapping"]]
-        require(len(mapping) == 4 and 3 not in mapping, run.name)
+        require(len(mapping) == device_count and set(mapping) <= set(profile["allowed_physical_gpu_ids"]), run.name)
         require(summary["gpu"]["whole_card_sample_interval_seconds"] == 0.5, run.name)
-        require(len(read(run / "postflight.json")) == 4, run.name)
+        require(len(read(run / "postflight.json")) == device_count, run.name)
         for row in read(run / "postflight.json"):
             require(not row["external_processes"] and not row["owned_kfd_pids"], run.name)
             require(row["vram_used_bytes"] < 1024**3, f"Unreleased VRAM: {run.name}")
@@ -86,6 +90,8 @@ def main():
             "config": {key: value for key, value in config.items() if key not in ("width", "height")},
             "environment": environment,
             "physical_gpu_order": mapping,
+            "mode": request["mode"],
+            "hardware_profile": profile["name"],
             "project_git_base": metadata["project_git_head"],
             "source_files": metadata["project_source_files"],
             "model_verification_sha256": metadata["model_verification_report"]["sha256"],
@@ -112,7 +118,7 @@ def main():
         require(ram["peak_process_tree_rss_bytes"] > 0 and ram["peak_process_tree_sum_vm_hwm_bytes"] > 0, run.name)
         require(ram["peak_host_used_delta_from_baseline_bytes"] is not None, run.name)
         peaks = {key: value["peak_vram_used_bytes"] for key, value in summary["gpu"]["physical"].items()}
-        require(len(peaks) == 4 and all(value > 0 for value in peaks.values()), run.name)
+        require(len(peaks) == device_count and all(value > 0 for value in peaks.values()), run.name)
         groups[size].append({
             "run_id": run.name,
             "started_at_utc": datetime.fromtimestamp(result["started_time_ns"] / 1e9, timezone.utc).isoformat(),
@@ -150,7 +156,11 @@ def main():
     sources = sorted({(row["repository"], row["revision"]) for row in model_report["files"]})
     print(json.dumps({
         "schema_version": 1,
-        "suite": "R9700 original-precision matched resolution sweep",
+        "suite": (
+            "R9700 original-precision matched resolution sweep"
+            if common["hardware_profile"] == "r9700"
+            else f"{common['hardware_profile'].upper()} {common['mode']} original-precision matched resolution sweep"
+        ),
         "generator": {"path": str(Path(__file__).relative_to(ROOT)), "sha256": digest(Path(__file__))},
         "measurement": {
             "batch_size": 1, "monitor_interval_seconds": 0.5,
