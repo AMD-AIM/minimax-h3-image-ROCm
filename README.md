@@ -1,6 +1,6 @@
 # MiniMax H3-Image on AMD ROCm
 
-Run **MiniMax-H3-Image at its original BF16/FP32 precision on four AMD Radeon AI PRO R9700 GPUs**. This project provides an independent image inference backend built on pinned ComfyUI modules, with explicit CPU offload, multi-GPU layer placement, and reproducible resource measurements.
+Run **MiniMax-H3-Image at its original BF16/FP32 precision on four AMD Radeon AI PRO R9700 GPUs or two AMD Radeon PRO W7900 GPUs**. This project provides an independent image inference backend built on pinned ComfyUI modules, with explicit CPU offload, multi-GPU layer placement, and reproducible resource measurements.
 
 **Native 4K · Official six-step schedule · No weight quantization · AMD RDNA4**
 
@@ -10,6 +10,7 @@ Run **MiniMax-H3-Image at its original BF16/FP32 precision on four AMD Radeon AI
 
 - Original MiniMax-H3-Image weights: BF16 text encoder and DiT backbone, the released FP32 modules and PDD heads, and the original FP32 VAE.
 - Four R9700 GPUs working on one image, with CPU offload for the text encoder and device reuse between stages.
+- Two 48 GB W7900-class GPUs (`gfx1100`) working on one image with `--mode two-static`, selected through a hardware profile.
 - Six model evaluations, CFG=1, batch=1, and the released PDD sigma schedule.
 - Per-stage latency, per-device VRAM, process-tree RAM, output hashes, and resource-ownership checks for every run.
 - A pinned ROCm 10.1 environment with project-local application dependencies and build caches. vLLM-Omni is not a dependency.
@@ -30,9 +31,23 @@ Measured on **November 13, 2026**, with **two completed fresh-process requests p
 [Detailed benchmark report](docs/benchmarks/R9700_NATIVE_RESOLUTIONS.md) · [Machine-readable results and source hashes](docs/benchmarks/r9700-native-resolutions.json)
 <!-- resolution-benchmark:end -->
 
+### Two W7900 GPUs
+
+The same workload on **two Radeon PRO W7900D GPUs** (`gfx1100`, 48 GB each, `--hardware w7900 --mode two-static`):
+
+| Resolution | Full request (s) | Six-step denoise (s) | Peak VRAM / GPU (GiB) | Peak CPU RAM, RSS (GiB) |
+|---|---:|---:|---:|---:|
+| 1K · 1024 × 1024 | **72.39** | 5.03 | 32.05 | 6.37 |
+| 2K · 2048 × 2048 | **92.48** | 18.15 | 32.43 | 6.56 |
+| 4K · 4096 × 4096 | **314.26** | 229.68 | 34.00 | 6.49 |
+
+Measured on November 14, 2026 with three 1K and two 2K/4K fresh-process requests; every pair was byte-identical, and a single-GPU streaming request reproduced the two-GPU 2K result bit for bit. Long 4K sequences are much slower on RDNA3 than on the R9700s.
+
+[W7900 benchmark report](docs/benchmarks/W7900_NATIVE_RESOLUTIONS.md) · [Machine-readable results](docs/benchmarks/w7900-native-resolutions.json)
+
 **How to read the numbers.** Full-request time includes isolated text encoding, weight loading, all six denoising steps, VAE loading/decoding, PNG saving, and in-process cleanup. It excludes process/container bootstrap and foundation validation. Each sample starts a fresh process; filesystem and kernel caches may already be warm. These are instrumented single-request measurements, not persistent-server throughput.
 
-VRAM is the highest whole-card usage observed on any of the four selected devices, sampled every 0.5 seconds. CPU RAM is the summed process-tree RSS peak; it can count shared pages more than once. Whole-host RAM growth also includes page-cache and unrelated host activity. Sampling can miss shorter transients, and observed RAM is not a minimum system-RAM requirement.
+VRAM is the highest whole-card usage observed on any of the selected devices, sampled every 0.5 seconds. CPU RAM is the summed process-tree RSS peak; it can count shared pages more than once. Whole-host RAM growth also includes page-cache and unrelated host activity. Sampling can miss shorter transients, and observed RAM is not a minimum system-RAM requirement.
 
 The existing Attention policy forces PyTorch Flash for sequences of at least 4096 tokens. The 2K and 4K DiT requests meet that threshold; the shorter 1K request uses the ordinary PyTorch SDPA dispatcher. No weight precision, step count, or offload policy changes between resolutions.
 
@@ -104,7 +119,7 @@ Text encoding runs in a disposable process and hands the main process a hash-ver
 
 The original 4K qualification passed a **three-prompt × two-seed matrix** covering product photography, architecture, and illustration. A same-input, same-device-order A/A pair matched conditioning, initial noise, all six step latents, and the final PNG exactly. Source and model identities are recorded with each request.
 
-The supported claim is **single-image text-to-image generation with CPU offload on this pinned R9700 environment**. Concurrent serving, throughput scaling, editing, prompt expansion, batch sizes above one, and an all-GPU-resident pipeline remain unqualified. Same-implementation reproducibility does not establish pixel equivalence with a different inference engine.
+The supported claim is **single-image text-to-image generation with CPU offload on the pinned R9700 environment and on two W7900-class GPUs with the [W7900 lock](configs/runtime-lock.w7900.json)**. The W7900 path passed the same 4K three-prompt × two-seed matrix. Concurrent serving, throughput scaling, editing, prompt expansion, batch sizes above one, and an all-GPU-resident pipeline remain unqualified. Same-implementation reproducibility does not establish pixel equivalence with a different inference engine.
 
 ## Project map
 
@@ -117,6 +132,7 @@ The supported claim is **single-image text-to-image generation with CPU offload 
 | [`tools/run_rocm10.py`](tools/run_rocm10.py) | Foundation launcher, device reservations, ownership checks, and resource monitoring |
 | [`tools/run_native_image.py`](tools/run_native_image.py) | Measured single-request inference entry point |
 | [`tools/summarize_resolution_sweep.py`](tools/summarize_resolution_sweep.py) | CPU-only validation and export of matched resolution benchmarks |
+| [`configs/hardware/`](configs/hardware/) | R9700 and W7900 profiles: GPU architecture, permitted devices, and foundation lock |
 | [`configs/native_t2i.json`](configs/native_t2i.json) | Frozen prompt, precision policy, and official six-step schedule |
 | [`configs/o5_qualification_matrix.json`](configs/o5_qualification_matrix.json) | Three-prompt, two-seed functional qualification workload |
 | [`models/README.md`](models/README.md) | Model links, fixed revisions, and checksums |

@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "name": "r9700",
+  "description": "AMD Radeon AI PRO R9700, RDNA4",
+  "gpu_architecture": "gfx1201",
+  "kfd_gfx_target_version": "120001",
+  "allowed_physical_gpu_ids": [0, 1, 2, 4, 5, 6, 7],
+  "runtime_lock": "configs/runtime-lock.json"
+}

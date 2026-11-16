@@ -1,0 +1,539 @@
+{
+  "generator": {
+    "path": "tools/summarize_resolution_sweep.py",
+    "sha256": "644f1e534f4dd9b64a989b12ca663480e3f6a4c6c6de1fca4222b7377e2bfd8f"
+  },
+  "identity": {
+    "config": {
+      "attention_policy": "fail if the large DiT attention cannot use PyTorch FLASH_ATTENTION",
+      "cfg": 1.0,
+      "guidance_branch": false,
+      "precision": {
+        "conditioning_stage_boundary": "text encoder runs in a disposable GPU process; a hash-verified BF16 CPU safetensors artifact is the process boundary before clean-process DiT placement",
+        "dit_fp32_islands": "released FP32 input projection, time MLP, RoPE source and output heads",
+        "dit_main": "released BF16",
+        "dit_qkv_layout": "released raw head-major rows explicitly permuted to component-major Q|K|V rows consumed by the independent Comfy compute modules",
+        "dit_time_embedding_handoff": "FP32 time MLP and SiLU, then BF16 AdaLN projection, matching the released Diffusers Image path",
+        "pdd_heads": "released FP32 absolute heads",
+        "scheduler": "FP32 velocity Euler",
+        "text_encoder": "released BF16",
+        "vae": "released FP32"
+      },
+      "prompt": "A square studio product photograph of a handmade red fox plush toy sitting on a pale wooden table. The fox has soft burnt-orange fur, a cream muzzle and belly, two pointed ears, small dark glass eyes, and a thick curled tail with a white tip. A small blue ceramic cup stands to its left and three yellow daisies lie to its right. Behind the table is a softly blurred sage-green wall. Gentle afternoon sunlight enters from the upper left, revealing fine individual fabric fibers and neat stitched seams. The composition is centered and balanced, with natural soft shadows, realistic material texture, warm colors, and crisp detail on the fox. No text or watermark.",
+      "qualification_gates": {
+        "four_static_vs_single_offload": {
+          "conditioning_exact": true,
+          "each_step_max_absolute": 1e-05,
+          "each_step_relative_l2_max": 1e-06,
+          "initial_noise_exact": true,
+          "output_sha256_match_is_informational": true,
+          "strict_flash_dit_calls": 300,
+          "visual_semantic_check_required": true
+        }
+      },
+      "schema_version": 1,
+      "seed": 42,
+      "sigmas": [
+        1.0,
+        0.9675236940383911,
+        0.8875485062599182,
+        0.75,
+        0.5327739119529724,
+        0.23200887441635132,
+        0.0
+      ],
+      "steps": 6,
+      "text_encoder_process_isolation": true,
+      "workload": "MiniMax-H3-Image original-precision text-to-image qualification"
+    },
+    "environment": {
+      "comfyui_commit": "989d93d0d968e704c589ce0146bb18c77f6b50cc",
+      "device_count": 2,
+      "devices": [
+        {
+          "architecture": "gfx1100",
+          "logical_id": 0,
+          "name": "AMD Radeon Pro W7900D",
+          "total_memory_bytes": 51522830336
+        },
+        {
+          "architecture": "gfx1100",
+          "logical_id": 1,
+          "name": "AMD Radeon Pro W7900D",
+          "total_memory_bytes": 51522830336
+        }
+      ],
+      "hardware_profile": "w7900",
+      "hip_build": "7.16.26385",
+      "image_id": "sha256:31cc953da2ee8345774f92c8f288dded6a19cbcd59c1ce96051970f48d627d18",
+      "physical_gpus": [
+        "4",
+        "5"
+      ],
+      "python": "3.13.13",
+      "runtime_lock": "configs/runtime-lock.w7900.json",
+      "torch": "2.14.0+rocm10.1.0",
+      "triton": "3.8.0+git669b31ac.rocm10.1.0"
+    },
+    "hardware_profile": "w7900",
+    "host_total_ram_bytes": 540696395776,
+    "mode": "two_static",
+    "model_verification_sha256": "60c2e7d8066041f2cf2161c99f078490a7ac279c27f4025be1248df7e784b08e",
+    "physical_gpu_order": [
+      4,
+      5
+    ],
+    "project_git_base": "38e5322aae2564d59ed5393347f00c394de7d36e",
+    "source_files": [
+      {
+        "path": "tools/run_native_image.py",
+        "sha256": "d55bbce3eec10505648ccb3facb28b38a450820f079704022405b1abb27abdca"
+      },
+      {
+        "path": "tools/encode_native_conditioning.py",
+        "sha256": "7eed9d8ea59d24b6368fc0eb7069b49162bbef6014e7eb4647f5f08c70eec4fc"
+      },
+      {
+        "path": "tools/run_rocm10.py",
+        "sha256": "2171419a8d85cf7938c0ffd564274c7661a864e31dc6b8a29a095d8190ab6bb8"
+      },
+      {
+        "path": "configs/native_t2i.json",
+        "sha256": "49561fba0ea93a83cf33bf2cdd8ec0aa0dfda7edb27e180a9d50dac72f7c3f3a"
+      },
+      {
+        "path": "src/minimax_h3_image_rocm/__init__.py",
+        "sha256": "98506cd3b655aa10f773a232190c4cdc337a6ed96bbf7bf90d0598db044512e7"
+      },
+      {
+        "path": "src/minimax_h3_image_rocm/bootstrap.py",
+        "sha256": "895e0d6a87d364ac70e4974654ea264236719f70a3605128c2e9b5a8db2848c6"
+      },
+      {
+        "path": "src/minimax_h3_image_rocm/dit.py",
+        "sha256": "a493cffd4d0c3a080c0f036eeec1858a44f91af5e52adbb63d68db77017faa6b"
+      },
+      {
+        "path": "src/minimax_h3_image_rocm/hardware.py",
+        "sha256": "d7165185095bd0e59a5a9e6994c36869e324d2e5e1707dbaeb99d9cc43ddf8b7"
+      },
+      {
+        "path": "src/minimax_h3_image_rocm/metrics.py",
+        "sha256": "b438e0776916e96e92a02b85c1dcfa6a98907696c3409175a1ee2dc854dfff05"
+      },
+      {
+        "path": "src/minimax_h3_image_rocm/pipeline.py",
+        "sha256": "f8563a3c20a9943a367d754d059aa54f3cc2f6a77edbdf8ccd5e1310c436bdde"
+      },
+      {
+        "path": "src/minimax_h3_image_rocm/text_encoder.py",
+        "sha256": "af6d7f01bbc8286d6e1670c7b97ae23b81c4542d19f38d691fed6a1a064ff721"
+      },
+      {
+        "path": "src/minimax_h3_image_rocm/vae.py",
+        "sha256": "01de4ce67f8367e6e723d1534c6029635928f6c2a1c64b3715063ecd12f8bbb8"
+      },
+      {
+        "path": "src/minimax_h3_image_rocm/weights.py",
+        "sha256": "28cde845e843fe2aa5e6776de835faeba30c3b3fa1e2acb136a1c8dd8d819433"
+      }
+    ]
+  },
+  "measurement": {
+    "batch_size": 1,
+    "cache_policy": "fresh process per sample; OS file and kernel caches may be warm; no conditioning reuse",
+    "memory_scope": "whole-card VRAM samples; summed process RSS/HWM; whole-host delta includes unrelated activity and page cache",
+    "monitor_interval_seconds": 0.5,
+    "request_scope": "pipeline including text encoding, weight loading, six steps, VAE, PNG and cleanup; excludes process/container bootstrap",
+    "timing_summary": "arithmetic mean and observed range; no throughput or statistical confidence claim"
+  },
+  "model_sources": [
+    {
+      "repository": "MiniMaxAI/MiniMax-H3",
+      "revision": "0919fb684102ef115126612f3fbb84d1027e7317"
+    },
+    {
+      "repository": "MiniMaxAI/MiniMax-H3-Image",
+      "revision": "5f90473023975e6271b0ed1dd84c4e88e4bbc6d3"
+    }
+  ],
+  "resolutions": [
+    {
+      "aa_tensor_and_png_exact": true,
+      "denoise_seconds": {
+        "max": 5.0588481517042965,
+        "mean": 5.031700633931905,
+        "min": 5.006287460913882
+      },
+      "height": 1024,
+      "launcher_seconds": {
+        "max": 82.47014724090695,
+        "mean": 78.43081098430169,
+        "min": 73.56561050703749
+      },
+      "max_host_used_delta_gib": 10.53658676147461,
+      "max_process_tree_rss_gib": 6.368339538574219,
+      "max_process_tree_sum_vm_hwm_gib": 6.5526123046875,
+      "max_single_gpu_vram_gib": 32.04652786254883,
+      "request_seconds": {
+        "max": 75.46584616811015,
+        "mean": 72.38693429273553,
+        "min": 67.66376318898983
+      },
+      "sample_count": 3,
+      "samples": [
+        {
+          "denoise_seconds": 5.0588481517042965,
+          "evidence_sha256": {
+            "execution.json": "4b3f070b520d51faffc7e5550b6c461d0d44f9e31754b9ae3ef667aa7e044f20",
+            "monitor-summary.json": "08ad21cce3c8b36bbc950f463e49c483ef8a3295826137e8988df8eea727d6d3",
+            "monitor.jsonl": "f842b592dfa72bbae420f498a33f45bec5c76444a19b4b655e87d5f6dd3df4ad",
+            "postflight.json": "c92f897cda183e0d9c9d8eea8ec6716ce8ea7b3bb0d37abaea4849fa9e879a81",
+            "result.json": "fe51106fb5a25524c962c7aec6733f9d6889c5f3a9161c58f64ee63d096ad7ee",
+            "summary.json": "0423dc8f78284275234ad06b55945ab0e784958151cd2fa08ac81630a00d0254"
+          },
+          "launcher_seconds": 82.47014724090695,
+          "peak_host_used_delta_bytes": 1341964288,
+          "peak_process_tree_rss_bytes": 6704635904,
+          "peak_process_tree_sum_vm_hwm_bytes": 7035813888,
+          "peak_vram_bytes_by_physical_gpu": {
+            "4": 33436209152,
+            "5": 34409697280
+          },
+          "phase_seconds": {
+            "denoise_step": 5.0588481517042965,
+            "dit_load": 31.740798090118915,
+            "save_png": 0.3835614880081266,
+            "text_encode_isolated_process": 35.04977747704834,
+            "vae_decode": 0.9569413841236383,
+            "vae_load": 1.5273029678501189
+          },
+          "png_sha256": "edbdffe277df1ebc9980b4279b324c81d4708f6193168259f1f191b42a651bad",
+          "request_seconds": 75.46584616811015,
+          "run_id": "w7900-bench-1024-seed42-r1",
+          "started_at_utc": "2026-11-14T13:14:16.184062+00:00",
+          "strict_flash_dit_calls": 0,
+          "tensor_sha256": {
+            "conditioning.safetensors": "940b089433628f6693d1d137be0d83a08b9584fb9bfcd014b96904cb83be39bd",
+            "latent-initial.safetensors": "ed9c30acf8d85eb5e32c28f40da507a76460072d4017bb28172bb59a810d6820",
+            "latent-step-01.safetensors": "0e0467d3201710f325b8edd0e04668484dd8ee93b263e295484ad0ee15471670",
+            "latent-step-02.safetensors": "c0b9d5932845b2b4424c3eb338ccd651186ae90550340f533cae3db5da25b93c",
+            "latent-step-03.safetensors": "0502bd8a045b464862c2410c67a5112ab06de2a3e9f2cd55213c9b8409bfa2e4",
+            "latent-step-04.safetensors": "49ac290f72f80458f599db8e2d595b68ed3c8f855e053b32cb9c7b123a7dc525",
+            "latent-step-05.safetensors": "485a2a9bbde4f1e2a4390744ac47fadf1474eda5d33579c9f7301e513ffebb6f",
+            "latent-step-06.safetensors": "ae7b241960a8763336f2902c0fd564ff92af788f2562ac1d9cd8f337d8bf0497"
+          }
+        },
+        {
+          "denoise_seconds": 5.006287460913882,
+          "evidence_sha256": {
+            "execution.json": "f55b0e431473ef0aec65cd5f6fcc9a2c9a379d496206bdd6807d127776925bb1",
+            "monitor-summary.json": "a8cbea3933748330de636035c273eadbe73c1f26161ccc2d1ed488d418e885d3",
+            "monitor.jsonl": "99d78fd67b2b99164f801bf04af513fc62437558605d03e230e0f84f4ac35a2a",
+            "postflight.json": "06f3b2f4e860f3c95952017cc0d7bcb9729641226d759beec8c3f39cbe04aa51",
+            "result.json": "ae55a3268011288ef0b0a1d8323a68e24b84e365c2102558e84910e61e67ee0c",
+            "summary.json": "cdde2cdf6c10aa61416a32875123e59d328f9cb12bc0cc035664d84a8cf8a15d"
+          },
+          "launcher_seconds": 73.56561050703749,
+          "peak_host_used_delta_bytes": 11120910336,
+          "peak_process_tree_rss_bytes": 6682836992,
+          "peak_process_tree_sum_vm_hwm_bytes": 7020769280,
+          "peak_vram_bytes_by_physical_gpu": {
+            "4": 33436213248,
+            "5": 34409684992
+          },
+          "phase_seconds": {
+            "denoise_step": 5.006287460913882,
+            "dit_load": 28.295536131830886,
+            "save_png": 0.37999054114334285,
+            "text_encode_isolated_process": 30.94143125996925,
+            "vae_decode": 0.9561911800410599,
+            "vae_load": 1.4517933570314199
+          },
+          "png_sha256": "edbdffe277df1ebc9980b4279b324c81d4708f6193168259f1f191b42a651bad",
+          "request_seconds": 67.66376318898983,
+          "run_id": "w7900-bench-1024-seed42-r2",
+          "started_at_utc": "2026-11-14T13:22:38.178807+00:00",
+          "strict_flash_dit_calls": 0,
+          "tensor_sha256": {
+            "conditioning.safetensors": "940b089433628f6693d1d137be0d83a08b9584fb9bfcd014b96904cb83be39bd",
+            "latent-initial.safetensors": "ed9c30acf8d85eb5e32c28f40da507a76460072d4017bb28172bb59a810d6820",
+            "latent-step-01.safetensors": "0e0467d3201710f325b8edd0e04668484dd8ee93b263e295484ad0ee15471670",
+            "latent-step-02.safetensors": "c0b9d5932845b2b4424c3eb338ccd651186ae90550340f533cae3db5da25b93c",
+            "latent-step-03.safetensors": "0502bd8a045b464862c2410c67a5112ab06de2a3e9f2cd55213c9b8409bfa2e4",
+            "latent-step-04.safetensors": "49ac290f72f80458f599db8e2d595b68ed3c8f855e053b32cb9c7b123a7dc525",
+            "latent-step-05.safetensors": "485a2a9bbde4f1e2a4390744ac47fadf1474eda5d33579c9f7301e513ffebb6f",
+            "latent-step-06.safetensors": "ae7b241960a8763336f2902c0fd564ff92af788f2562ac1d9cd8f337d8bf0497"
+          }
+        },
+        {
+          "denoise_seconds": 5.029966289177537,
+          "evidence_sha256": {
+            "execution.json": "be07ce56096619c99045cd91afae11a0a68fce0b7250c612f151607aab4be5f3",
+            "monitor-summary.json": "9f5ddbbdc591b25c0e01cf8bfa9c16267ac85e6d9cc5fe7850cf1e3f9f7fec03",
+            "monitor.jsonl": "6cad2d5074a44b71193821921ae0f2e9e2a11c67c1b3f623a2c23a8b3f32b12b",
+            "postflight.json": "33daffb2f049c2a41541bab3d6c47cb277277ebb239d8f7a5502dc8a08bad46a",
+            "result.json": "8bc49ea1242f06223eb99f9965a35cd953ba353ebb879fe4e16fbc44899f0b4f",
+            "summary.json": "e4711cd36b572ffe768d00fce3b2b2785c91a80b225e4f658be2bce8b28cb9fa"
+          },
+          "launcher_seconds": 79.25667520496063,
+          "peak_host_used_delta_bytes": 11313573888,
+          "peak_process_tree_rss_bytes": 6837952512,
+          "peak_process_tree_sum_vm_hwm_bytes": 7030235136,
+          "peak_vram_bytes_by_physical_gpu": {
+            "4": 33436209152,
+            "5": 34409684992
+          },
+          "phase_seconds": {
+            "denoise_step": 5.029966289177537,
+            "dit_load": 31.813746151980013,
+            "save_png": 0.3796338269021362,
+            "text_encode_isolated_process": 33.68191302008927,
+            "vae_decode": 0.952204491943121,
+            "vae_load": 1.5114728510379791
+          },
+          "png_sha256": "edbdffe277df1ebc9980b4279b324c81d4708f6193168259f1f191b42a651bad",
+          "request_seconds": 74.03119352110662,
+          "run_id": "w7900-bench-1024-seed42-r3",
+          "started_at_utc": "2026-11-14T13:32:35.821453+00:00",
+          "strict_flash_dit_calls": 0,
+          "tensor_sha256": {
+            "conditioning.safetensors": "940b089433628f6693d1d137be0d83a08b9584fb9bfcd014b96904cb83be39bd",
+            "latent-initial.safetensors": "ed9c30acf8d85eb5e32c28f40da507a76460072d4017bb28172bb59a810d6820",
+            "latent-step-01.safetensors": "0e0467d3201710f325b8edd0e04668484dd8ee93b263e295484ad0ee15471670",
+            "latent-step-02.safetensors": "c0b9d5932845b2b4424c3eb338ccd651186ae90550340f533cae3db5da25b93c",
+            "latent-step-03.safetensors": "0502bd8a045b464862c2410c67a5112ab06de2a3e9f2cd55213c9b8409bfa2e4",
+            "latent-step-04.safetensors": "49ac290f72f80458f599db8e2d595b68ed3c8f855e053b32cb9c7b123a7dc525",
+            "latent-step-05.safetensors": "485a2a9bbde4f1e2a4390744ac47fadf1474eda5d33579c9f7301e513ffebb6f",
+            "latent-step-06.safetensors": "ae7b241960a8763336f2902c0fd564ff92af788f2562ac1d9cd8f337d8bf0497"
+          }
+        }
+      ],
+      "width": 1024
+    },
+    {
+      "aa_tensor_and_png_exact": true,
+      "denoise_seconds": {
+        "max": 18.16687822691165,
+        "mean": 18.150438644574024,
+        "min": 18.1339990622364
+      },
+      "height": 2048,
+      "launcher_seconds": {
+        "max": 98.01847260491922,
+        "mean": 97.77126233896706,
+        "min": 97.5240520730149
+      },
+      "max_host_used_delta_gib": 9.558937072753906,
+      "max_process_tree_rss_gib": 6.564235687255859,
+      "max_process_tree_sum_vm_hwm_gib": 6.564235687255859,
+      "max_single_gpu_vram_gib": 32.43384552001953,
+      "request_seconds": {
+        "max": 92.70970617514104,
+        "mean": 92.47705800563563,
+        "min": 92.24440983613022
+      },
+      "sample_count": 2,
+      "samples": [
+        {
+          "denoise_seconds": 18.16687822691165,
+          "evidence_sha256": {
+            "execution.json": "5d27fc64c765ce094658e42f516700d8edfcc86f868dd36bc07b1a1429b6dc48",
+            "monitor-summary.json": "a7db59700d57cd3f05e040e60931e9dae5934f2c9788004518ae17e1db2593c0",
+            "monitor.jsonl": "16ae8027f98e87b81b2b5eff3386b5777ab6581be0812c1d2bbd6d759981f145",
+            "postflight.json": "812ab86de5ffee6da8e2d8891e0def9b7cd9c45bebc3617822696bc1640fdaaf",
+            "result.json": "d23d811499bfd2393bee6b12588a7441a09b0766dd933cd9c14e27adf58fdc73",
+            "summary.json": "ba72d0ca254e00a78537ef9c6f4754ed0992e6594e3a4693d00dddaf00c82d50"
+          },
+          "launcher_seconds": 97.5240520730149,
+          "peak_host_used_delta_bytes": 10263830528,
+          "peak_process_tree_rss_bytes": 7036784640,
+          "peak_process_tree_sum_vm_hwm_bytes": 7036784640,
+          "peak_vram_bytes_by_physical_gpu": {
+            "4": 33943851008,
+            "5": 34825576448
+          },
+          "phase_seconds": {
+            "denoise_step": 18.16687822691165,
+            "dit_load": 32.057161959121004,
+            "save_png": 1.8324886991176754,
+            "text_encode_isolated_process": 33.66224720701575,
+            "vae_decode": 4.322273076977581,
+            "vae_load": 1.5179871818982065
+          },
+          "png_sha256": "2630189b04cdf200302a01c18d0cc30262a637b2d5c41ed1c6633b2b8e532b8a",
+          "request_seconds": 92.24440983613022,
+          "run_id": "w7900-bench-2048-seed42-r1",
+          "started_at_utc": "2026-11-14T13:15:37.719232+00:00",
+          "strict_flash_dit_calls": 300,
+          "tensor_sha256": {
+            "conditioning.safetensors": "940b089433628f6693d1d137be0d83a08b9584fb9bfcd014b96904cb83be39bd",
+            "latent-initial.safetensors": "353e80b1c82e877a77dc4e32fc19d8fd22a419983840f1a506d7bdd8289bdbb6",
+            "latent-step-01.safetensors": "e769c141567241415b6fa36eb305ce63b3bcdecbf645b7928b01a18a3b56845c",
+            "latent-step-02.safetensors": "668ebc61ea48bc575b62fb5aa4912254e4b2b6ee70bfdb3fcd9865bc0e847d04",
+            "latent-step-03.safetensors": "e6fe3f108dca641e2a01b00a66f060ffb76e3dfd63b891f36f1ff3ee9065cc08",
+            "latent-step-04.safetensors": "7e1eed3b68fe6269f00ac8a5f577d206611035b5a84634cab1f60c58f33e9239",
+            "latent-step-05.safetensors": "892edcb78899e53c90c9125b6fe859fac82b31f658377e5316ea5b79c62e30a0",
+            "latent-step-06.safetensors": "f97a05893a6d4db9f62e15cacedab5a2ee83f3f0260c4d084a409ec751133be5"
+          }
+        },
+        {
+          "denoise_seconds": 18.1339990622364,
+          "evidence_sha256": {
+            "execution.json": "155709ffaaa40ea135f9d5585dc6fdff8776a88013abf304a9210cb943b682c4",
+            "monitor-summary.json": "c3686729fae482a4b6b22da57484c3ec95f7618e546126633b85257228958cb6",
+            "monitor.jsonl": "f2cd999516992332dfab692668213111a7fff0ba7050d93dd335809fff0a3613",
+            "postflight.json": "1e942ae6a7039c9d2355853d0bc0fe2f219f7189e392794ab2b5c83aacc19e88",
+            "result.json": "6118a398df97bac8a7b03eb0a29c8f96fde8905ecb021c42d29535fe8396aada",
+            "summary.json": "19c3e1e9442440c70bd2b1dd87489e060090570affff3ebf4e22119a54573bbe"
+          },
+          "launcher_seconds": 98.01847260491922,
+          "peak_host_used_delta_bytes": 7388045312,
+          "peak_process_tree_rss_bytes": 7048294400,
+          "peak_process_tree_sum_vm_hwm_bytes": 7048294400,
+          "peak_vram_bytes_by_physical_gpu": {
+            "4": 33943834624,
+            "5": 34825560064
+          },
+          "phase_seconds": {
+            "denoise_step": 18.1339990622364,
+            "dit_load": 32.12256543408148,
+            "save_png": 1.8848521788604558,
+            "text_encode_isolated_process": 34.09720553597435,
+            "vae_decode": 4.301664084894583,
+            "vae_load": 1.5114355119876564
+          },
+          "png_sha256": "2630189b04cdf200302a01c18d0cc30262a637b2d5c41ed1c6633b2b8e532b8a",
+          "request_seconds": 92.70970617514104,
+          "run_id": "w7900-bench-2048-seed42-r2",
+          "started_at_utc": "2026-11-14T13:23:52.023513+00:00",
+          "strict_flash_dit_calls": 300,
+          "tensor_sha256": {
+            "conditioning.safetensors": "940b089433628f6693d1d137be0d83a08b9584fb9bfcd014b96904cb83be39bd",
+            "latent-initial.safetensors": "353e80b1c82e877a77dc4e32fc19d8fd22a419983840f1a506d7bdd8289bdbb6",
+            "latent-step-01.safetensors": "e769c141567241415b6fa36eb305ce63b3bcdecbf645b7928b01a18a3b56845c",
+            "latent-step-02.safetensors": "668ebc61ea48bc575b62fb5aa4912254e4b2b6ee70bfdb3fcd9865bc0e847d04",
+            "latent-step-03.safetensors": "e6fe3f108dca641e2a01b00a66f060ffb76e3dfd63b891f36f1ff3ee9065cc08",
+            "latent-step-04.safetensors": "7e1eed3b68fe6269f00ac8a5f577d206611035b5a84634cab1f60c58f33e9239",
+            "latent-step-05.safetensors": "892edcb78899e53c90c9125b6fe859fac82b31f658377e5316ea5b79c62e30a0",
+            "latent-step-06.safetensors": "f97a05893a6d4db9f62e15cacedab5a2ee83f3f0260c4d084a409ec751133be5"
+          }
+        }
+      ],
+      "width": 2048
+    },
+    {
+      "aa_tensor_and_png_exact": true,
+      "denoise_seconds": {
+        "max": 230.75704451580532,
+        "mean": 229.6793825547211,
+        "min": 228.60172059363686
+      },
+      "height": 4096,
+      "launcher_seconds": {
+        "max": 322.0270565089304,
+        "mean": 320.17895196098834,
+        "min": 318.3308474130463
+      },
+      "max_host_used_delta_gib": 40.44454574584961,
+      "max_process_tree_rss_gib": 6.490081787109375,
+      "max_process_tree_sum_vm_hwm_gib": 6.551067352294922,
+      "max_single_gpu_vram_gib": 34.00379943847656,
+      "request_seconds": {
+        "max": 316.13261912507005,
+        "mean": 314.25703127204906,
+        "min": 312.3814434190281
+      },
+      "sample_count": 2,
+      "samples": [
+        {
+          "denoise_seconds": 230.75704451580532,
+          "evidence_sha256": {
+            "execution.json": "aad7683c3b05bff5d9a9b201e866fb257807ef2e0c04c6a3bd5eec020b11c762",
+            "monitor-summary.json": "f434bef3907c71048e87c5027a4f66c3b45f00d1f5c24973cb2423e190d36caf",
+            "monitor.jsonl": "027f07b234e4cd24c698ad79570567c4ded9eb7471c50b6ce7af7ce287dfa4d2",
+            "postflight.json": "d9b6dad7eecca59150a29554289b33831f0feb8afee5636ddb87f8271442ba16",
+            "result.json": "c905dbecfde74cd95b39ee75d71e1bf49d0fd1c73f439f4c30e492010616e1ba",
+            "summary.json": "055c296a571bcdfd3ccf02ca4aa9c7413ea795697bfb4977aea66fc95bad9fbe"
+          },
+          "launcher_seconds": 322.0270565089304,
+          "peak_host_used_delta_bytes": 43427000320,
+          "peak_process_tree_rss_bytes": 6833152000,
+          "peak_process_tree_sum_vm_hwm_bytes": 7030894592,
+          "peak_vram_bytes_by_physical_gpu": {
+            "4": 35879538688,
+            "5": 36511301632
+          },
+          "phase_seconds": {
+            "denoise_step": 230.75704451580532,
+            "dit_load": 28.73856684821658,
+            "save_png": 6.33023495785892,
+            "text_encode_isolated_process": 32.05867983400822,
+            "vae_decode": 16.060849158093333,
+            "vae_load": 1.4668806120753288
+          },
+          "png_sha256": "bcf82c831c349849b836e240bd5ed6b591003078d035ee53a36e237b374ebc35",
+          "request_seconds": 316.13261912507005,
+          "run_id": "w7900-bench-4096-seed42-r1",
+          "started_at_utc": "2026-11-14T13:17:15.728467+00:00",
+          "strict_flash_dit_calls": 300,
+          "tensor_sha256": {
+            "conditioning.safetensors": "940b089433628f6693d1d137be0d83a08b9584fb9bfcd014b96904cb83be39bd",
+            "latent-initial.safetensors": "971453d109ddc5d10fddac81554a7c3fd9299f2ddbb20d3f5fc6f8517d567611",
+            "latent-step-01.safetensors": "9f9b51e5714b18dd9435dc8c588d161e151476371bbddc7e2e15172c9f921db5",
+            "latent-step-02.safetensors": "90635a5a8caf84fe31be04b11a91f2f2045dfc4b1b742f9c501835fb7b003763",
+            "latent-step-03.safetensors": "d075868e842165e41bb010af613ab6d960a497dfeadf1a86c97c7de11c692ffd",
+            "latent-step-04.safetensors": "5c130f408c944c6d10b22a9d90db3619ca09f41b65a983f9b6d9a806e0abfa0b",
+            "latent-step-05.safetensors": "b7f8efcf9ba7d38464e9e701a5761fad9ffae132d5828d5bdb04ace24bef3365",
+            "latent-step-06.safetensors": "ff4af874e76283126fa6742f92bf4066379a08f0b9ee127e550ae831597fb7fd"
+          }
+        },
+        {
+          "denoise_seconds": 228.60172059363686,
+          "evidence_sha256": {
+            "execution.json": "0cf9934a3aa6b75b89c38473cd6ac86055b5a18a7fda2a240c20364e4a978942",
+            "monitor-summary.json": "3990d11d7e3d6b5207fd73e4217db83f3f2283ed0b0917b802616d4975fb8e62",
+            "monitor.jsonl": "d4c52fdb81c85fc74f92fe910b3eaa5fada9027d0ac4dc6b29297280f223cc54",
+            "postflight.json": "dd9306232c9ceac7bbb688cfea0cb328ea47b644ce3e5afd7503fc8881f2be0a",
+            "result.json": "1b0aa02f7e700bccfd50d88b3d985c86ea1d77e4f79e52dd838bb195499ad17f",
+            "summary.json": "fd7649d1c62a00114ff6d2a7ed58d6f079f091b7b42ed1e5e2525e6b66d36b53"
+          },
+          "launcher_seconds": 318.3308474130463,
+          "peak_host_used_delta_bytes": 9690705920,
+          "peak_process_tree_rss_bytes": 6968672256,
+          "peak_process_tree_sum_vm_hwm_bytes": 7034155008,
+          "peak_vram_bytes_by_physical_gpu": {
+            "4": 35879047168,
+            "5": 36511281152
+          },
+          "phase_seconds": {
+            "denoise_step": 228.60172059363686,
+            "dit_load": 27.719256028998643,
+            "save_png": 6.332648515002802,
+            "text_encode_isolated_process": 31.48294383310713,
+            "vae_decode": 16.06187225691974,
+            "vae_load": 1.4719482220243663
+          },
+          "png_sha256": "bcf82c831c349849b836e240bd5ed6b591003078d035ee53a36e237b374ebc35",
+          "request_seconds": 312.3814434190281,
+          "run_id": "w7900-bench-4096-seed42-r2",
+          "started_at_utc": "2026-11-14T13:25:30.549091+00:00",
+          "strict_flash_dit_calls": 300,
+          "tensor_sha256": {
+            "conditioning.safetensors": "940b089433628f6693d1d137be0d83a08b9584fb9bfcd014b96904cb83be39bd",
+            "latent-initial.safetensors": "971453d109ddc5d10fddac81554a7c3fd9299f2ddbb20d3f5fc6f8517d567611",
+            "latent-step-01.safetensors": "9f9b51e5714b18dd9435dc8c588d161e151476371bbddc7e2e15172c9f921db5",
+            "latent-step-02.safetensors": "90635a5a8caf84fe31be04b11a91f2f2045dfc4b1b742f9c501835fb7b003763",
+            "latent-step-03.safetensors": "d075868e842165e41bb010af613ab6d960a497dfeadf1a86c97c7de11c692ffd",
+            "latent-step-04.safetensors": "5c130f408c944c6d10b22a9d90db3619ca09f41b65a983f9b6d9a806e0abfa0b",
+            "latent-step-05.safetensors": "b7f8efcf9ba7d38464e9e701a5761fad9ffae132d5828d5bdb04ace24bef3365",
+            "latent-step-06.safetensors": "ff4af874e76283126fa6742f92bf4066379a08f0b9ee127e550ae831597fb7fd"
+          }
+        }
+      ],
+      "width": 4096
+    }
+  ],
+  "schema_version": 1,
+  "suite": "W7900 two_static original-precision matched resolution sweep"
+}

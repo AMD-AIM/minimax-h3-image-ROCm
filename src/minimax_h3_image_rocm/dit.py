@@ -25,6 +25,8 @@ from .weights import (
 BLOCK_PATTERN = re.compile(r"^blocks\.(\d+)\.")
 
 
+MODE_DEVICE_COUNTS = {"single_offload": 1, "two_static": 2, "four_static": 4}
+
 class NativeImageDiT:
     @staticmethod
     def _raw_tensor_transform(
@@ -43,12 +45,10 @@ class NativeImageDiT:
         mode: str,
         metrics,
     ):
-        if mode not in ("single_offload", "four_static"):
+        if mode not in MODE_DEVICE_COUNTS:
             raise ValueError(mode)
-        if mode == "single_offload" and len(devices) != 1:
-            raise ValueError("single_offload requires exactly one visible device")
-        if mode == "four_static" and len(devices) != 4:
-            raise ValueError("four_static requires exactly four visible devices")
+        if len(devices) != MODE_DEVICE_COUNTS[mode]:
+            raise ValueError(f"{mode} requires exactly {MODE_DEVICE_COUNTS[mode]} visible devices")
         self.root = Path(model_root)
         self.index = SafetensorIndex(self.root)
         self.pdd = json.loads(Path(pdd_config).read_text())
@@ -80,7 +80,7 @@ class NativeImageDiT:
             block.adaln_proj.apply_silu = False
         self.model.final_layer.adaln_proj.apply_silu = False
 
-        self.plan = plan_dit(self.index) if mode == "four_static" else {
+        self.plan = plan_dit(self.index, len(self.devices)) if mode != "single_offload" else {
             "ranges": [{"logical_device": 0, "start": 0, "stop": 50}],
             "mode": "one block at a time",
         }
@@ -110,7 +110,7 @@ class NativeImageDiT:
             self.model, Path(pdd_heads), self.devices[-1], metrics=metrics
         )
         unresolved = meta_tensors(self.model)
-        if mode == "four_static":
+        if mode != "single_offload":
             if unresolved:
                 raise RuntimeError(f"Static DiT has unresolved tensors: {unresolved[:20]}")
         else:
@@ -210,7 +210,7 @@ class NativeImageDiT:
         block_rows = []
         current_device = first
         for block_index, block in enumerate(self.model.blocks):
-            if self.mode == "four_static":
+            if self.mode != "single_offload":
                 desired = self.devices[block_device(self.plan, block_index)]
                 if desired != current_device:
                     h = self._move(h, desired, "hidden_states", step_index)

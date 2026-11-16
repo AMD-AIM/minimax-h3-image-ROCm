@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass
+import itertools
 import json
 from pathlib import Path
 import re
@@ -311,8 +312,8 @@ def meta_tensors(module: torch.nn.Module) -> list[str]:
 
 
 def plan_dit(index: SafetensorIndex, device_count: int = 4, pdd_bytes: int = 12_388_608) -> dict:
-    if device_count != 4:
-        raise ValueError("The current native placement gate is defined for four devices")
+    if device_count not in (2, 4):
+        raise ValueError("Native static placement is defined for two or four devices")
     block_re = re.compile(r"^blocks\.(\d+)\.")
     block_bytes = [0] * 50
     front_bytes = 0
@@ -335,22 +336,23 @@ def plan_dit(index: SafetensorIndex, device_count: int = 4, pdd_bytes: int = 12_
     for value in block_bytes:
         prefix.append(prefix[-1] + value)
     best = None
-    for first in range(1, 48):
-        for second in range(first + 1, 49):
-            for third in range(second + 1, 50):
-                loads = [
-                    front_bytes + prefix[first],
-                    prefix[second] - prefix[first],
-                    prefix[third] - prefix[second],
-                    prefix[50] - prefix[third] + final_bytes,
-                ]
-                score = (max(loads), max(loads) - min(loads), sum(abs(loads[i] - loads[i - 1]) for i in range(1, 4)))
-                if best is None or score < best[0]:
-                    best = (score, (first, second, third), loads)
+    # Lexicographic enumeration keeps the original four-device tie-breaking.
+    for cuts in itertools.combinations(range(1, 50), device_count - 1):
+        edges = (0, *cuts, 50)
+        loads = [prefix[edges[i + 1]] - prefix[edges[i]] for i in range(device_count)]
+        loads[0] += front_bytes
+        loads[-1] += final_bytes
+        score = (
+            max(loads),
+            max(loads) - min(loads),
+            sum(abs(loads[i] - loads[i - 1]) for i in range(1, device_count)),
+        )
+        if best is None or score < best[0]:
+            best = (score, cuts, loads)
     boundaries = (0, *best[1], 50)
     ranges = [
         {"logical_device": index_, "start": boundaries[index_], "stop": boundaries[index_ + 1], "bytes": best[2][index_]}
-        for index_ in range(4)
+        for index_ in range(device_count)
     ]
     return {
         "ranges": ranges,

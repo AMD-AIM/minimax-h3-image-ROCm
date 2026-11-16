@@ -14,7 +14,7 @@ from safetensors import safe_open
 from safetensors.torch import save_file
 import torch
 
-from .dit import NativeImageDiT
+from .dit import MODE_DEVICE_COUNTS, NativeImageDiT
 from .text_encoder import StreamingTextEncoder
 from .vae import OriginalImageVAE
 
@@ -112,7 +112,7 @@ class NativeImagePipeline:
         self.config = config
         self.mode = mode
         self.metrics = metrics
-        expected_devices = 1 if mode == "single_offload" else 4
+        expected_devices = MODE_DEVICE_COUNTS[mode]
         if torch.cuda.device_count() != expected_devices:
             raise RuntimeError(
                 f"{mode} requires {expected_devices} visible devices, got {torch.cuda.device_count()}"

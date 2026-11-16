@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run one owned job on reserved R9700 devices through the ROCm 10.1 foundation."""
+"""Run one owned job on reserved AMD GPUs through the ROCm 10.1 foundation."""
 from __future__ import annotations
 
 import argparse
@@ -11,14 +11,18 @@ import os
 from pathlib import Path
 import signal
 import subprocess
+import sys
 import time
 
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+
+from minimax_h3_image_rocm.hardware import DEFAULT_PROFILE, load_profile  # noqa: E402
+
 WORKSPACE = ROOT.parent
 LEASES = WORKSPACE / "deepinfer_workspace/artifacts/amd/rocm10"
 GPU_LOCKS = WORKSPACE / "minimax_h3/.standard-opt-state/locks"
-ALLOWED_GPUS = frozenset((0, 1, 2, 4, 5, 6, 7))
 
 
 def write(path, value):
@@ -38,7 +42,7 @@ def reservations():
     return rows
 
 
-def device(index):
+def device(index, profile):
     inventory = json.loads(
         subprocess.check_output(["rocm-smi", "--showbus", "--showuniqueid", "--json"], text=True)
     )
@@ -49,8 +53,8 @@ def device(index):
     for node in Path("/sys/class/kfd/kfd/topology/nodes").iterdir():
         props = dict(line.split(maxsplit=1) for line in (node / "properties").read_text().splitlines())
         if int(props.get("unique_id", "0")) == unique_id:
-            if props.get("gfx_target_version") != "120001":
-                raise RuntimeError("Selected device is not gfx1201")
+            if props.get("gfx_target_version") != profile["kfd_gfx_target_version"]:
+                raise RuntimeError(f"Selected device is not {profile['gpu_architecture']}")
             pci_path = Path("/sys/bus/pci/devices") / pci
             total_path = pci_path / "mem_info_vram_total"
             return {
@@ -267,7 +271,7 @@ def stop_container(cid_file):
         subprocess.run(["docker", "stop", "--time", "10", cid], capture_output=True)
 
 
-def parse_gpu_list(args, parser):
+def parse_gpu_list(args, parser, allowed):
     if args.gpus is not None and args.gpu is not None:
         parser.error("Use either --gpu or --gpus, not both")
     raw = args.gpus if args.gpus is not None else str(args.gpu if args.gpu is not None else 1)
@@ -275,8 +279,8 @@ def parse_gpu_list(args, parser):
         result = [int(value) for value in raw.split(",")]
     except ValueError:
         parser.error("GPU IDs must be comma-separated integers")
-    if not result or len(result) != len(set(result)) or any(value not in ALLOWED_GPUS for value in result):
-        parser.error("Select unique non-GPU3 physical devices from 0,1,2,4,5,6,7")
+    if not result or len(result) != len(set(result)) or any(value not in allowed for value in result):
+        parser.error(f"Select unique physical devices from {','.join(map(str, sorted(allowed)))}")
     return result
 
 
@@ -284,13 +288,19 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--gpu", type=int, default=None, help="one physical device (legacy form)")
     parser.add_argument("--gpus", help="ordered comma-separated physical devices")
+    parser.add_argument("--hardware", default=os.environ.get("H3I_HARDWARE", DEFAULT_PROFILE),
+                        help="hardware profile under configs/hardware")
     parser.add_argument("--run-dir", type=Path, required=True)
     parser.add_argument("--timeout", type=float, default=7200)
     parser.add_argument("--monitor-interval", type=float, default=0.5)
     parser.add_argument("--purpose", default="H3-Image independent native-precision validation")
     parser.add_argument("command", nargs=argparse.REMAINDER)
     args = parser.parse_args()
-    selected = parse_gpu_list(args, parser)
+    try:
+        profile = load_profile(ROOT, args.hardware)
+    except ValueError as error:
+        parser.error(str(error))
+    selected = parse_gpu_list(args, parser, frozenset(profile["allowed_physical_gpu_ids"]))
     command = args.command[1:] if args.command[:1] == ["--"] else args.command
     if not command or args.timeout <= 0 or not 0.1 <= args.monitor_interval <= 10:
         parser.error("Provide a command; timeout must be positive and monitor interval 0.1..10 seconds")
@@ -309,6 +319,7 @@ def main():
         "physical_gpus": selected,
         "evidence": str(run),
         "purpose": args.purpose,
+        "hardware": profile["name"],
     }
     process = None
     outcome = {"status": "failed", "returncode": None}
@@ -324,7 +335,7 @@ def main():
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         registry = stack.enter_context((LEASES / "gpu-reservation.json.lock").open("a+"))
         fcntl.flock(registry, fcntl.LOCK_EX)
-        gpus = [device(physical_id) for physical_id in selected]
+        gpus = [device(physical_id, profile) for physical_id in selected]
         active = reservations()
         conflicts = [
             reservation
@@ -345,6 +356,7 @@ def main():
         write(
             run / "hardware.json",
             {
+                "hardware_profile": profile,
                 "ordered_physical_gpus": selected,
                 "logical_mapping": [
                     {"logical_id": logical_id, **gpu} for logical_id, gpu in enumerate(gpus)
@@ -362,6 +374,7 @@ def main():
                 "HIP_VISIBLE_DEVICES": ",".join(str(index) for index in range(len(gpus))),
                 "ROCR_VISIBLE_DEVICES": ",".join(gpu["uuid"] for gpu in gpus),
                 "H3I_PHYSICAL_GPUS": ",".join(map(str, selected)),
+                "H3I_HARDWARE": profile["name"],
                 "H3I_RUN_DIR": str(run),
                 "H3I_ROOT": str(ROOT),
                 "TRITON_CACHE_DIR": str(cache / "triton"),

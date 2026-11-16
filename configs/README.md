@@ -17,6 +17,8 @@ The default size in `native_t2i.json` is 2048 × 2048. The CLI overrides both di
 |---|---|
 | [`runtime-target.json`](runtime-target.json) | Foundation and application identities used during preparation and native extension builds |
 | [`runtime-lock.json`](runtime-lock.json) | Verified foundation/framework pairing, application commits, extension hashes, and historical INT8 model identities |
+| [`runtime-lock.w7900.json`](runtime-lock.w7900.json) | W7900 foundation image, framework versions, and `gfx1100` extension hashes |
+| [`hardware/r9700.json`](hardware/r9700.json), [`hardware/w7900.json`](hardware/w7900.json) | GPU architecture, KFD target, permitted physical GPUs, and the lock each profile uses; selected with `--hardware` (default `r9700`) |
 | [`requirements-image.lock`](requirements-image.lock) | Pinned application and build dependencies layered onto the foundation |
 
 Original model revisions and checksums are in [`models/README.md`](../models/README.md) and the fixed [downloader](../tools/download_native_models.py). Their local verification metadata is ignored.

@@ -39,9 +39,9 @@ def main() -> None:
 
     torch.set_grad_enabled(False)
     torch.set_float32_matmul_precision("highest")
-    if torch.cuda.device_count() not in (1, 4):
+    if torch.cuda.device_count() not in (1, 2, 4):
         raise RuntimeError(
-            "The isolated text stage requires the same one- or four-device visibility as the request"
+            "The isolated text stage requires the same one-, two- or four-device visibility as the request"
         )
 
     from minimax_h3_image_rocm.metrics import RunMetrics

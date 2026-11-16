@@ -97,6 +97,41 @@ The reference is used only for comparison; the new request recomputes text encod
 
 This comparison work runs inside the measured request. For timing comparisons using the published benchmark definition, run both requests without `--reference-run`, then compare their retained artifacts offline. The [resolution summary tool](../tools/summarize_resolution_sweep.py) validates and exports matched pairs at all three resolutions.
 
+## Two W7900 GPUs
+
+The W7900 path uses the same tools with the `w7900` [hardware profile](../configs/hardware/w7900.json). Pass `--hardware w7900` to the launcher; it forwards the profile to every tool in the container, which then checks the `gfx1100` architecture and the [W7900 foundation lock](../configs/runtime-lock.w7900.json) instead of the R9700 ones. The workspace `rocm10-launch.sh` must start that lock's foundation image and set `DEEPINFER_IMAGE_ID` to its ID.
+
+Prepare the environment and native extensions exactly as above, adding the profile:
+
+```bash
+python3 tools/run_rocm10.py --hardware w7900 --gpu "${SETUP_GPU_ID:?}" --run-dir runs/w7900-setup-env -- python tools/prepare_environment.py --install
+python3 tools/run_rocm10.py --hardware w7900 --gpu "$SETUP_GPU_ID" --run-dir runs/w7900-build-native -- .runtime/venv/bin/python tools/build_native.py
+python3 tools/run_rocm10.py --hardware w7900 --gpu "$SETUP_GPU_ID" --run-dir runs/w7900-probe -- .runtime/venv/bin/python tools/probe_native_runtime.py --attention-4k
+```
+
+`build_native.py` builds the extensions for the profile's architecture. If huggingface.co is not reachable, point the downloader at a mirror; revisions and SHA256 checks are unchanged:
+
+```bash
+HF_ENDPOINT=https://hf-mirror.com python3 tools/download_native_models.py --workers 24 --chunk-mib 64
+```
+
+Generate with two ordered physical GPU IDs and `--mode two-static`:
+
+```bash
+python3 tools/run_rocm10.py \
+  --hardware w7900 \
+  --gpus "${GPU_IDS:?Set GPU_IDS to two comma-separated physical GPU IDs}" \
+  --run-dir runs/w7900-4k-seed42 \
+  --timeout 1800 \
+  --monitor-interval 0.5 \
+  -- .runtime/venv/bin/python tools/run_native_image.py \
+  --mode two-static \
+  --config configs/native_t2i.json \
+  --width 4096 --height 4096 --seed 42
+```
+
+DiT blocks 0–23 and 24–49 stay on the two GPUs; the busiest card peaks at about 34 GiB at 4K. If other jobs on the machine pick GPUs that look idle, reserve your GPUs with their scheduler: during text encoding only the first selected GPU is busy, and the launcher stops the request when it detects another process on a selected GPU. See the [W7900 benchmark](benchmarks/W7900_NATIVE_RESOLUTIONS.md) for measured time and memory.
+
 ## Historical INT8 baseline
 
 The frozen [single-card INT8 release](releases/v0.1.0-image-int8-first-image.md) uses three different model files, listed in the historical INT8 section of [model sources](../models/README.md).
